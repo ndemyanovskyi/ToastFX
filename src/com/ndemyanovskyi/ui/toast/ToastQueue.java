@@ -3,113 +3,91 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package com.ndemyanovskyi.ui.toast;
 
 import com.sun.javafx.collections.ObservableListWrapper;
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.function.Function;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
-import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
 
-public final class ToastQueue<T> {
-    
-    private final T owner;
-    private QueueThread<T> thread;
-    
-    private final ReadOnlyObjectWrapper<Toast<T>> currentToast
+public class ToastQueue {
+
+    private QueueThread thread;
+        
+    private final ReadOnlyObjectWrapper<Toast<?>> currentToast
 	    = new ReadOnlyObjectWrapper<>(this, "currentToast");
     
-    private final ObservableList<Toast<T>> toasts = FXCollections.
-	    synchronizedObservableList(new ObservableListWrapper<Toast<T>>(new ArrayList<>()) {
-
-		{
-		    addListener((Change<? extends Toast<T>> c) -> {
-			synchronized(this) {
-			    while(c.next()) {
-				if(c.wasReplaced()) {
-				    break;
-				}
-				if(c.wasAdded()) {
-				    for(Toast<T> toast : c.getAddedSubList()) {
-					toast.setQueue(ToastQueue.this);
-				    }
-				} else if(c.wasRemoved()) {
-				    for(Toast<T> toast : c.getRemoved()) {
-					if(toast.isShowing() || !toast.isShown()) {
-					    toast.cancel();
-					} else {
-					    toast.setQueue(null);
-					}
-				    }
-				}
-			    }
-			}
-		    });
-		}
+    private final ObservableList<Toast<?>> toasts = FXCollections.synchronizedObservableList(
+		    new ObservableListWrapper<Toast<?>>(new ArrayList<>()) {
 		
 		@Override
-		public void add(int index, Toast<T> toast) {
+		public void add(int index, Toast<?> toast) {
 		    Objects.requireNonNull(toast, "element");
 		    if(contains(toast)) {
-			throw new IllegalArgumentException(
-				"list already contains this toast [" + toast + "].");
+			throw new IllegalArgumentException("Queue already contains this toast.");
 		    }
-		    if(toast.isCancelled())  {
-			throw new IllegalArgumentException(
-				"toast [" + toast + "] already cancelled.");
+		    if(toast.isCancelled()) {
+			throw new IllegalArgumentException("Toast already cancelled.");
 		    }
-		    if(toast.getQueue() != null)  {
-			throw new IllegalArgumentException(
-				"toast [" + toast + "] already in queue.");
+		    if(toast.getQueue() != null) {
+			throw new IllegalArgumentException("Toast already in queue.");
 		    }
-		    if(toast.isShown())  {
-			throw new IllegalArgumentException(
-				"toast [" + toast + "] already shown.");
+		    if(toast.isShown()) {
+			throw new IllegalArgumentException("Toast already shown.");
+		    }
+		    if(toast.getPopup().isShowingRequsted()) {
+			throw new IllegalArgumentException("Toast already request showing.");
 		    }
 		    super.add(index, toast);
 		}
-
 	    });
 
-    private final Function<ToastQueue<T>, QueueThread<T>> threadFactory;
-    
-    ToastQueue(T owner, Function<ToastQueue<T>, QueueThread<T>> threadFactory) {
-	this.owner = Objects.requireNonNull(owner);
-	this.threadFactory = Objects.requireNonNull(threadFactory, "threadFactory");
-	
-	toasts.addListener((ListChangeListener.Change<? extends Toast<T>> c) -> {
-	    while(c.next()) {
-		if(c.wasAdded()) {
-		    if(thread == null || thread.isFinished()) {
-			thread = threadFactory.apply(this);
-			currentToast.bind(thread.currentToastProperty());
-			thread.start();
+    public ToastQueue() {
+	toasts.addListener((ListChangeListener.Change<? extends Toast> c) -> {
+	    synchronized(toasts) {
+		while(c.next()) {
+		    if(c.wasReplaced()) {
+			break;
 		    }
-		    break;
+		    if(c.wasAdded()) {
+			for(Toast toast : c.getAddedSubList()) {
+			    toast.setQueue(ToastQueue.this);
+			}
+			if(thread == null || thread.isFinished()) {
+			    thread = new QueueThread(this);
+			    currentToast.bind(thread.currentToastProperty());
+			    thread.start();
+			}
+		    } else if(c.wasRemoved()) {
+			for(Toast toast : c.getRemoved()) {
+			    if(toast.isShowing()) {
+				toast.cancel();
+			    } 
+			    toast.setQueue(null);
+			}
+		    }
 		}
 	    }
 	});
     }
-    
-    public final ObservableList<Toast<T>> getToasts() {
+
+    public final ObservableList<Toast<?>> getToasts() {
 	return toasts;
     }
 
-    public final T getOwner() {
-	return owner;
+    final QueueThread getThread() {
+	return thread;
     }
 
-    public Toast<T> getCurrentToast() {
+    public final Toast<?> getCurrentToast() {
 	return currentToast.get();
     }
-    
-    public final ReadOnlyObjectProperty<Toast<T>> currentToastProperty() {
+
+    public final ReadOnlyObjectProperty<Toast<?>> currentToastProperty() {
 	return currentToast.getReadOnlyProperty();
     }
     
