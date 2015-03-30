@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -23,6 +24,8 @@ import javafx.util.Duration;
 
 abstract class ToastPopup<T> {
     
+    private static final Duration TRANSITION_DURATION = Duration.millis(250);
+    
     private static final Map<Class<?>, Function<Toast, ToastPopup>> FACTORIES
 	    = new HashMap<Class<?>, Function<Toast, ToastPopup>>() {{
 		put(Node.class, NodeToastPopup::new);
@@ -30,9 +33,13 @@ abstract class ToastPopup<T> {
 		put(Window.class, WindowToastPopup::new);
 	    }};
     
+    private final InvalidationListener relocater = p -> relocate();
+    
     private final Toast<T> toast;
     
-    private final FadeTransition transition = new FadeTransition(Duration.millis(300));
+    private final FadeTransition showTransition;
+    private final FadeTransition hideTransition;
+    
     private Popup popup;
     
     private boolean showingRequsted = false;
@@ -41,6 +48,45 @@ abstract class ToastPopup<T> {
     ToastPopup(Toast<T> toast) {
 	super();
 	this.toast = Objects.requireNonNull(toast, "toast");
+	
+	showTransition = new FadeTransition(TRANSITION_DURATION, toast.getNode());
+	showTransition.setFromValue(0);
+	showTransition.setToValue(1);
+	showTransition.setOnFinished(e -> {
+	    onShown();
+	    EventHandler<? super ActionEvent> onShown = toast.getOnShown();
+	    if(onShown != null) {
+		onShown.handle(new ActionEvent(
+			toast, Event.NULL_SOURCE_TARGET));
+	    }
+	});
+
+	toast.getNode().opacityProperty().addListener(e -> {
+	    relocate();
+	});
+	
+	hideTransition = new FadeTransition(TRANSITION_DURATION, toast.getNode());
+	hideTransition.setFromValue(1);
+	hideTransition.setToValue(0);
+	hideTransition.setOnFinished((ActionEvent e) -> {
+	    getPopup().hide();
+	    showingRequsted = false;
+	    toast.setShowing(false);
+	    
+	    onHidden();	 
+	    
+	    getToast().getNode().widthProperty().removeListener(relocater);
+	    getToast().getNode().heightProperty().removeListener(relocater);
+	    getToast().getNode().layoutBoundsProperty().removeListener(relocater);
+	    getToast().getNode().boundsInLocalProperty().removeListener(relocater);
+	    getToast().getNode().boundsInParentProperty().removeListener(relocater);
+	    
+	    EventHandler<? super ActionEvent> onHidden = toast.getOnHidden();
+	    if(onHidden != null) {
+		onHidden.handle(new ActionEvent(
+			toast, Event.NULL_SOURCE_TARGET));
+	    }
+	});
     }
     
     static <T> ToastPopup<T> of(Toast<T> toast) {
@@ -85,10 +131,10 @@ abstract class ToastPopup<T> {
 	return hidingRequested;
     }
 
-    private Popup getPopup() {
+    protected Popup getPopup() {
 	if(popup == null) {
 	    popup = new Popup();
-	    popup.getContent().add(toast.getNode());
+	    popup.getScene().setRoot(toast.getNode());
 	}
 	return popup;
     }
@@ -130,8 +176,10 @@ abstract class ToastPopup<T> {
 	}
     }
     
-    protected void onShow(Window window) {}
-    protected void onHide(Window window) {}
+    protected void onShowing() {}
+    protected void onShown() {}
+    protected void onHidden() {}
+    protected void onHiding() {}
 
     private void showImpl(Window window) {
 	Platform.runLater(() -> {
@@ -139,8 +187,6 @@ abstract class ToastPopup<T> {
 	    localPopup.show(window);
 	    hidingRequested = false;
 	    toast.setShowing(true);
-	    onShow(window);
-	    relocate();
 	    
 	    EventHandler<? super ActionEvent> onShowing = toast.getOnShowing();
 	    if(onShowing != null) {
@@ -148,17 +194,17 @@ abstract class ToastPopup<T> {
 			toast, Event.NULL_SOURCE_TARGET));
 	    }
 	    
-	    transition.setNode(toast.getNode());
-	    transition.setOnFinished(e -> {
-		EventHandler<? super ActionEvent> onShown = toast.getOnShown();
-		if(onShown != null) {
-		    onShown.handle(new ActionEvent(
-			    toast, Event.NULL_SOURCE_TARGET));
-		}
-	    });
-	    transition.setFromValue(0);
-	    transition.setToValue(1);
-	    transition.playFromStart();
+	    onShowing();
+	    
+	    
+	    getToast().getNode().widthProperty().addListener(relocater);
+	    getToast().getNode().heightProperty().addListener(relocater);
+	    getToast().getNode().layoutBoundsProperty().addListener(relocater);
+	    getToast().getNode().boundsInLocalProperty().addListener(relocater);
+	    getToast().getNode().boundsInParentProperty().addListener(relocater);
+	    
+	    hideTransition.stop();
+	    showTransition.playFromStart();
 	});
     }
 
@@ -182,31 +228,18 @@ abstract class ToastPopup<T> {
 	hidingRequested = true;
 	
 	Platform.runLater(() -> {
+	    onHiding();
+	    EventHandler<? super ActionEvent> onHiding = toast.getOnHiding();
+	    if(onHiding != null) {
+		onHiding.handle(new ActionEvent(
+			toast, Event.NULL_SOURCE_TARGET));
+	    }
+	    
 	    Popup localPopup = popup;	
 	    if(localPopup != null) {
-		onHide(popup.getOwnerWindow());
-
-		EventHandler<? super ActionEvent> onHiding = toast.getOnHiding();
-		if(onHiding != null) {
-		    onHiding.handle(new ActionEvent(
-			    toast, Event.NULL_SOURCE_TARGET));
-		}
-
-		transition.setNode(toast.getNode());
-		transition.setOnFinished((ActionEvent e) -> {
-		    localPopup.hide();
-		    showingRequsted = false;
-		    toast.setShowing(false);
-		    
-		    EventHandler<? super ActionEvent> onHidden = toast.getOnHidden();
-		    if(onHidden != null) {
-			onHidden.handle(new ActionEvent(
-				toast, Event.NULL_SOURCE_TARGET));
-		    }
-		});
-		transition.setFromValue(toast.getNode().getOpacity());
-		transition.setToValue(0);
-		transition.playFromStart();
+		showTransition.stop();
+		hideTransition.setFromValue(toast.getNode().getOpacity());
+		hideTransition.playFromStart();
 	    }
 	});
     }

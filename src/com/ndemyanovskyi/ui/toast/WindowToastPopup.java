@@ -7,6 +7,8 @@
 package com.ndemyanovskyi.ui.toast;
 
 import javafx.beans.InvalidationListener;
+import javafx.geometry.Point2D;
+import javafx.scene.layout.Region;
 import javafx.stage.Window;
 
 class WindowToastPopup<T extends Window> extends ToastPopup<T> {
@@ -21,19 +23,31 @@ class WindowToastPopup<T extends Window> extends ToastPopup<T> {
     }
 
     @Override
-    protected void onShow(Window window) {
-	window.xProperty().addListener(listener);
-	window.yProperty().addListener(listener);
-	window.widthProperty().addListener(listener);
-	window.heightProperty().addListener(listener);
+    protected void onShowing() {
+	Window window = getToast().getOwnerWindow();
+		
+	if(window != null) {
+	    Region root = getToast().getNode();
+	    Point2D screenXY = root.localToScreen(0, 0);
+	    double offset = (getPopup().getX() - screenXY.getX());
+	    root.setMaxWidth(getToast().getOwner().getWidth() + offset * 2);
+	    
+	    window.xProperty().addListener(listener);
+	    window.yProperty().addListener(listener);
+	    window.widthProperty().addListener(listener);
+	    window.heightProperty().addListener(listener);
+	}
     }
 
     @Override
-    protected void onHide(Window window) {
-	window.xProperty().removeListener(listener);
-	window.yProperty().removeListener(listener);
-	window.widthProperty().removeListener(listener);
-	window.heightProperty().removeListener(listener);
+    protected void onHidden() {	
+	Window window = getToast().getOwnerWindow();
+	if(window != null) {
+	    window.xProperty().removeListener(listener);
+	    window.yProperty().removeListener(listener);
+	    window.widthProperty().removeListener(listener);
+	    window.heightProperty().removeListener(listener);
+	}
     }
 
     @Override
