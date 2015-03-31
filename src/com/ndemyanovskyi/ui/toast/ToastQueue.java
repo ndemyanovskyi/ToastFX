@@ -30,6 +30,9 @@ public class ToastQueue {
 		    if(contains(toast)) {
 			throw new IllegalArgumentException("Queue already contains this toast.");
 		    }
+		    if(toast.getDuration().isIndefinite()) {
+			throw new IllegalArgumentException("Toast in queue can`t be have duration of indefinite.");
+		    }
 		    if(toast.isCancelled()) {
 			throw new IllegalArgumentException("Toast already cancelled.");
 		    }

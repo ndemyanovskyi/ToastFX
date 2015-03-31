@@ -84,53 +84,12 @@ final class SceneToastPopup<T extends Scene> extends ToastPopup<T> {
     @Override
     public void relocate() {
 	Scene scene = getToast().getOwner();
-	
-	double windowX = 0;
-	double windowY = 0;
-	double x = 0;
-	double y = 0;
-	
 	Window window = scene.getWindow();
-	if(window != null) {
-	    windowX = window.getX();
-	    windowY = window.getY();
-	}
 	
-	switch(getToast().getAlignment()) {
-	    case BOTTOM_LEFT:
-		x = 0;
-		y = scene.getHeight() - getHeight(); break;
-	    case BOTTOM_CENTER:
-		x = scene.getWidth() / 2 - (getWidth() / 2);
-		y = scene.getHeight() - getHeight(); break;
-	    case BOTTOM_RIGHT:
-		x = scene.getWidth() - getWidth();
-		y = scene.getHeight() - getHeight(); break;
-	    case BASELINE_LEFT:
-	    case TOP_LEFT:
-		x = 0;
-		y = 0; break;
-	    case BASELINE_CENTER:
-	    case TOP_CENTER:
-		x = scene.getWidth() / 2 - (getWidth() / 2);
-		y = 0; break;
-	    case BASELINE_RIGHT:
-	    case TOP_RIGHT:
-		x = scene.getWidth() - getWidth();
-		y = 0; break;
-	    case CENTER_LEFT:
-		x = 0;
-		y = scene.getHeight() / 2 - (getHeight() / 2); break;
-	    case CENTER_RIGHT:
-		x = scene.getWidth() - getWidth();
-		y = scene.getHeight() / 2 - (getHeight() / 2); break;
-	    case CENTER:
-		x = scene.getWidth() / 2 - (getWidth() / 2);
-		y = scene.getHeight() / 2 - (getHeight() / 2); break;
-	}
-	
-	setX(x + getToast().getOffset().getX() + scene.getX() + windowX);
-	setY(y + getToast().getOffset().getY() + scene.getY() + windowY);
+	relocate(this,
+		window.getX() + scene.getX(), 
+		window.getY() + scene.getY(),
+		scene.getWidth(), scene.getHeight());
     }
 
 }

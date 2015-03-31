@@ -30,6 +30,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -350,12 +351,44 @@ public class Toast<T> {
     }
 
     public static <T> Toast<T> of(T owner, String text, Duration duration, Pos alignment, Point2D offset) {
+	return of(owner, Toast.createText(text), duration, alignment, offset);
+    }
+
+    public static <T> Toast<T> of(T owner, Node content) {
+	return of(owner, content, Pos.CENTER);
+    }
+
+    public static <T> Toast<T> of(T owner, Node content, Pos alignment) {
+	return of(owner, content, DURATION_SHORT, alignment);
+    }
+
+    public static <T> Toast<T> of(T owner, Node content, Duration duration) {
+	return of(owner, content, duration, Pos.CENTER);
+    }
+
+    public static <T> Toast<T> of(T owner, Node content, Pos alignment, Point2D offset) {
+	return of(owner, content, DURATION_SHORT, alignment, offset);
+    }
+
+    public static <T> Toast<T> of(T owner, Node content, Pos alignment, double x, double y) {
+	return of(owner, content, DURATION_SHORT, alignment, x, y);
+    }
+
+    public static <T> Toast<T> of(T owner, Node content, Duration duration, Pos alignment) {
+	return of(owner, content, duration, alignment, Point2D.ZERO);
+    }
+
+    public static <T> Toast<T> of(T owner, Node content, Duration duration, Pos alignment, double x, double y) {
+	return of(owner, content, duration, alignment, new Point2D(x, y));
+    }
+
+    public static <T> Toast<T> of(T owner, Node content, Duration duration, Pos alignment, Point2D offset) {
 	return Toast.<T>builder().
 		setOwner(owner).
 		setOffset(offset).
 		setDuration(duration).
 		setAlignment(alignment).
-		setContent(createContent(text)).build();
+		setContent(content).build();
     }
     
     private static Label createLabel() {
@@ -366,16 +399,50 @@ public class Toast<T> {
 	return l;
     }
 
-    public static Label createContent(String text) {
+    public static Label createText(String text) {
+	return createText(text, Font.getDefault());
+    }
+
+    public static Label createText(String text, Font font) {
 	Label l = createLabel();
 	l.setText(text);
+	l.setFont(font);
 	return l;
     }
 
-    public static Label createContent(ObservableValue<String> text) {
+    public static Label createText(String text, String fontFamily) {
+	return createText(text, Font.font(fontFamily));
+    }
+
+    public static Label createText(String text, int size) {
+	return createText(text, Font.font(size));
+    }
+
+    public static Label createText(String text, String fontFamily, int size) {
+	return createText(text, Font.font(fontFamily, size));
+    }
+
+    public static Label createText(ObservableValue<String> text) {
+	return createText(text, Font.getDefault());
+    }
+
+    public static Label createText(ObservableValue<String> text, Font font) {
 	Label l = createLabel();
-        l.textProperty().bind(text);
+	l.textProperty().bind(text);
+	l.setFont(font);
 	return l;
+    }
+
+    public static Label createText(ObservableValue<String> text, String fontFamily) {
+	return createText(text, Font.font(fontFamily));
+    }
+
+    public static Label createText(ObservableValue<String> text, int size) {
+	return createText(text, Font.font(size));
+    }
+
+    public static Label createText(ObservableValue<String> text, String fontFamily, int size) {
+	return createText(text, Font.font(fontFamily, size));
     }
 
     /*public static <T extends Node> Toast<T> getCurrent(T owner) {
@@ -424,11 +491,11 @@ public class Toast<T> {
         }
 
         public Builder<T> setText(String text) {
-            return setContent(createContent(text));
+            return setContent(createText(text));
         }
 
         public Builder<T> setText(ObservableValue<String> textProperty) {
-            return setContent(Toast.createContent(textProperty));
+            return setContent(createText(textProperty));
         }
 
         public Builder<T> setContent(Node content) {

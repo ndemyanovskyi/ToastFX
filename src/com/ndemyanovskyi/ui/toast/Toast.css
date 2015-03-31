@@ -1,6 +1,6 @@
 .toast {
     -fx-background-color: rgb(55, 55, 55); 
     -fx-background-radius: 10;
-    -fx-effect: dropshadow(three-pass-box, black, 10, 0.0, 0, 0);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.7), 20, 0.0, 0, 0);
     -fx-padding: 7;
 }

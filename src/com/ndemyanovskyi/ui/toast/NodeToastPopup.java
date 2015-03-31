@@ -84,44 +84,7 @@ class NodeToastPopup<T extends Node> extends ToastPopup<T> {
     public void relocate() {
 	Bounds b = getToast().getOwner().localToScreen(
 		getToast().getOwner().getBoundsInLocal());
-	
-	double x = 0;
-	double y = 0;
-	
-	switch(getToast().getAlignment()) {
-	    case BOTTOM_LEFT:
-		x = b.getMinX();
-		y = b.getMaxY() - getHeight(); break;
-	    case BOTTOM_CENTER:
-		x = b.getMinX() + b.getWidth() / 2 - (getWidth() / 2);
-		y = b.getMaxY() - getHeight(); break;
-	    case BOTTOM_RIGHT:
-		x = b.getMaxX() - getWidth();
-		y = b.getMaxY() - getHeight(); break;
-	    case BASELINE_LEFT:
-	    case TOP_LEFT:
-		x = b.getMinX();
-		y = b.getMinY(); break;
-	    case BASELINE_CENTER:
-	    case TOP_CENTER:
-		x = b.getMinX() + b.getWidth() / 2 - (getWidth() / 2);
-		y = b.getMinY(); break;
-	    case BASELINE_RIGHT:
-	    case TOP_RIGHT:
-		x = b.getMaxX() - getWidth();
-		y = b.getMinY(); break;
-	    case CENTER_LEFT:
-		x = b.getMinX();
-		y = b.getMinY() + b.getHeight() / 2 - (getHeight() / 2); break;
-	    case CENTER_RIGHT:
-		x = b.getMaxX() - getWidth();
-		y = b.getMinY() + b.getHeight() / 2 - (getHeight() / 2); break;
-	    case CENTER:
-		x = b.getMinX() + b.getWidth() / 2 - (getWidth() / 2);
-		y = b.getMinY() + b.getHeight() / 2 - (getHeight() / 2); break;
-	}
-	setX(x + getToast().getOffset().getX());
-	setY(y + getToast().getOffset().getY());
+	relocate(this, b);
     }
 
 }

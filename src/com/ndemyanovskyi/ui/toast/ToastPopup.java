@@ -16,9 +16,12 @@ import javafx.beans.InvalidationListener;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.stage.Popup;
+import javafx.stage.Screen;
 import javafx.stage.Window;
 import javafx.util.Duration;
 
@@ -31,6 +34,7 @@ abstract class ToastPopup<T> {
 		put(Node.class, NodeToastPopup::new);
 		put(Scene.class, SceneToastPopup::new);
 		put(Window.class, WindowToastPopup::new);
+		put(Screen.class, ScreenToastPopup::new);
 	    }};
     
     private final InvalidationListener relocater = p -> relocate();
@@ -165,6 +169,8 @@ abstract class ToastPopup<T> {
 	Window window = toast.getOwnerWindow();
 	showingRequsted = true;
 	
+	onShowRequested();
+	
 	if(window != null) {
 	    showImpl(window);
 	} else {
@@ -176,6 +182,7 @@ abstract class ToastPopup<T> {
 	}
     }
     
+    protected void onShowRequested() {}
     protected void onShowing() {}
     protected void onShown() {}
     protected void onHidden() {}
@@ -194,8 +201,7 @@ abstract class ToastPopup<T> {
 			toast, Event.NULL_SOURCE_TARGET));
 	    }
 	    
-	    onShowing();
-	    
+	    onShowing();	    
 	    
 	    getToast().getNode().widthProperty().addListener(relocater);
 	    getToast().getNode().heightProperty().addListener(relocater);
@@ -242,6 +248,67 @@ abstract class ToastPopup<T> {
 		hideTransition.playFromStart();
 	    }
 	});
+    }
+    
+    static final void relocate(ToastPopup<?> popup, Bounds bounds) {
+	relocate(popup, 
+		bounds.getMinX(), bounds.getMinY(), 
+		bounds.getWidth(), bounds.getHeight());
+    }
+    
+    static final void relocate(ToastPopup<?> popup, Rectangle2D rect) {
+	relocate(popup, 
+		rect.getMinX(), rect.getMinY(), 
+		rect.getWidth(), rect.getHeight());
+    }
+    
+    static final void relocate(ToastPopup<?> popup, 
+	    double x, double y, double width, double height) 
+    {
+	final double maxX = x + width;
+	final double maxY = y + height;
+	
+	double resX = 0, resY = 0;
+	
+	switch(popup.getToast().getAlignment()) {
+	    case BOTTOM_LEFT:
+		resX = x;
+		resY = maxY - popup.getHeight(); break;
+	    case BOTTOM_CENTER:
+		resX = x + width / 2 - (popup.getWidth() / 2);
+		resY = maxY - popup.getHeight(); break;
+	    case BOTTOM_RIGHT:
+		resX = maxX - popup.getWidth();
+		resY = maxY - popup.getHeight(); break;
+	    case BASELINE_LEFT:
+	    case TOP_LEFT:
+		resX = x;
+		resY = y; break;
+	    case BASELINE_CENTER:
+	    case TOP_CENTER:
+		resX = x + width / 2 - (popup.getWidth() / 2);
+		resY = y; break;
+	    case BASELINE_RIGHT:
+	    case TOP_RIGHT:
+		resX = maxX - popup.getWidth();
+		resY = y; break;
+	    case CENTER_LEFT:
+		resX = x;
+		resY = y + height / 2 - (popup.getHeight() / 2); break;
+	    case CENTER_RIGHT:
+		resX = maxX - popup.getWidth();
+		resY = y + height / 2 - (popup.getHeight() / 2); break;
+	    case CENTER:
+		resX = x + width / 2 - (popup.getWidth() / 2);
+		resY = y + height / 2 - (popup.getHeight() / 2); break;
+	}
+	
+	//Add offset
+	resX += popup.getToast().getOffset().getX();
+	resY += popup.getToast().getOffset().getY();
+	
+	popup.setX(resX);
+	popup.setY(resY);
     }
 
 }
